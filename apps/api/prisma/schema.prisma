@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  GOOGLE
+  GITHUB
+  DEV
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  COACH
+}
+
+enum ResumeSource {
+  UPLOAD
+  FORM
+  CHAT
+}
+
+enum ResumeStatus {
+  DRAFT
+  READY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  INCOMPLETE
+  TRIALING
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  name             String?
+  avatarUrl        String?
+  provider         AuthProvider
+  providerId       String
+  plan             PlanTier       @default(FREE)
+  stripeCustomerId String?        @unique
+  matchesUsedMonth Int            @default(0)
+  matchMonthKey    String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  resumes          Resume[]
+  matches          JobMatch[]
+  subscription     Subscription?
+  coachingSessions CoachingSession[]
+  donations        Donation[]
+  refreshTokens    RefreshToken[]
+
+  @@unique([provider, providerId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Resume {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  source    ResumeSource @default(FORM)
+  status    ResumeStatus @default(DRAFT)
+  content   Json
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  matches   JobMatch[]
+  chatState ChatBuilderState?
+
+  @@index([userId])
+}
+
+model ChatBuilderState {
+  id           String   @id @default(cuid())
+  resumeId     String   @unique
+  resume       Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  stepIndex    Int      @default(0)
+  answers      Json     @default("{}")
+  completed    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+model JobMatch {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumeId           String
+  resume             Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobTitle           String?
+  jobDescription     String
+  jobUrl             String?
+  contentHash        String
+  overall            Int
+  ats                Int
+  skills             Int
+  experience         Int
+  interviewClearance Int
+  feedback           Json
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resumeId, contentHash])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String?            @unique
+  plan                 PlanTier           @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model CoachingSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetRole      String
+  focusAreas      String
+  planJson        Json?
+  stripePaymentId String?
+  paid            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Donation {
+  id                    String   @id @default(cuid())
+  userId                String?
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  amountCents           Int?
+  stripePaymentIntentId String?
+  createdAt             DateTime @default(now())
+}
