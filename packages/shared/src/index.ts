@@ -99,6 +99,11 @@ export {
   reorderSectionConfig,
   renderResumePlainText,
   sectionHeading,
+  visibleCustomSections,
+  visibleEducationEntries,
+  visibleExperienceRoles,
+  visibleProjects,
+  formatRoleDateRange,
 } from './resume-ats';
 export {
   keywordOverlapRatio,

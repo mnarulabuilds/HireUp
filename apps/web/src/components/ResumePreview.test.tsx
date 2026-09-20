@@ -87,4 +87,67 @@ describe('ResumePreview', () => {
     expect(screen.getByText('Awards')).toBeInTheDocument();
     expect(screen.getByText('Best hackathon 2024')).toBeInTheDocument();
   });
+
+  it('renders education details, project bullets, and role location', () => {
+    const content = emptyResumeContent();
+    content.sectionConfig = content.sectionConfig!.map((s) => ({
+      ...s,
+      enabled: ['education', 'projects', 'experience'].includes(s.type),
+    }));
+    content.experience = [
+      {
+        company: 'Northwind',
+        title: 'Engineer',
+        startDate: '2021',
+        endDate: '2024',
+        location: 'Remote',
+        bullets: ['Improved reliability'],
+      },
+    ];
+    content.education = [
+      {
+        school: 'State U',
+        degree: 'B.S.',
+        field: 'CS',
+        startDate: '2016',
+        endDate: '2020',
+        details: 'Graduated with honors',
+      },
+    ];
+    content.projects = [
+      {
+        name: 'CLI Tool',
+        url: 'https://example.com/cli',
+        description: 'Developer utility',
+        bullets: ['1k weekly users'],
+      },
+    ];
+    render(<ResumePreview title="T" content={content} />);
+    expect(screen.getByText(/Remote/)).toBeInTheDocument();
+    expect(screen.getByText(/Graduated with honors/)).toBeInTheDocument();
+    expect(screen.getByText(/1k weekly users/)).toBeInTheDocument();
+    expect(screen.getByText(/https:\/\/example.com\/cli/)).toBeInTheDocument();
+  });
+
+  it('renders bullet-only roles and untitled custom blocks', () => {
+    const content = emptyResumeContent();
+    content.sectionConfig = content.sectionConfig!.map((s) => ({
+      ...s,
+      enabled: s.type === 'experience' || s.type === 'custom',
+    }));
+    content.experience = [{ company: '', title: '', bullets: ['Solo delivery'] }];
+    content.customSections = [{ title: '', content: 'Volunteer mentor' }];
+    render(<ResumePreview title="T" content={content} />);
+    expect(screen.getByText('Solo delivery')).toBeInTheDocument();
+    expect(screen.getByText('Volunteer mentor')).toBeInTheDocument();
+    expect(screen.getByText('Additional')).toBeInTheDocument();
+  });
+
+  it('shows live preview label and document shell', () => {
+    const content = emptyResumeContent();
+    content.basics.fullName = 'Preview User';
+    render(<ResumePreview title="T" content={content} />);
+    expect(screen.getByText('Live preview')).toBeInTheDocument();
+    expect(screen.getByLabelText('Resume preview')).toHaveClass('resume-document');
+  });
 });

@@ -159,33 +159,43 @@ export function renderResumePlainText(content: AtsResumeContent): string {
         break;
       }
       case 'experience': {
-        if (!normalized.experience.length) break;
+        const roles = normalized.experience.filter(
+          (exp) =>
+            exp.title.trim() ||
+            exp.company.trim() ||
+            exp.bullets.some((b) => b.trim()),
+        );
+        if (!roles.length) break;
         lines.push('', sectionHeading('experience', config).toUpperCase());
-        for (const exp of normalized.experience) {
+        roles.forEach((exp, index) => {
           const titleLine = [exp.title, exp.company].filter(Boolean).join(' — ');
           if (titleLine) lines.push(titleLine);
           const dates = [exp.startDate, exp.endDate ?? (exp.current ? 'Present' : '')]
             .filter(Boolean)
             .join(' – ');
-          if (dates) lines.push(dates);
-          if (exp.location) lines.push(exp.location);
+          const meta = [dates, exp.location?.trim()].filter(Boolean).join(' · ');
+          if (meta) lines.push(meta);
           for (const b of exp.bullets) {
             if (b.trim()) lines.push(`• ${b.trim()}`);
           }
-          lines.push('');
-        }
+          if (index < roles.length - 1) lines.push('');
+        });
         break;
       }
       case 'education': {
-        if (!normalized.education.length) break;
+        const entries = normalized.education.filter(
+          (ed) => ed.school.trim() || ed.degree.trim() || ed.field?.trim(),
+        );
+        if (!entries.length) break;
         lines.push('', sectionHeading('education', config).toUpperCase());
-        for (const ed of normalized.education) {
+        entries.forEach((ed, index) => {
           const line = [ed.degree, ed.field, ed.school].filter(Boolean).join(' — ');
           if (line) lines.push(line);
           const dates = [ed.startDate, ed.endDate].filter(Boolean).join(' – ');
           if (dates) lines.push(dates);
           if (ed.details) lines.push(ed.details);
-        }
+          if (index < entries.length - 1) lines.push('');
+        });
         break;
       }
       case 'skills': {
@@ -198,16 +208,24 @@ export function renderResumePlainText(content: AtsResumeContent): string {
         break;
       }
       case 'projects': {
-        if (!normalized.projects.length) break;
+        const projects = normalized.projects.filter(
+          (p) =>
+            p.name.trim() ||
+            p.description?.trim() ||
+            p.url?.trim() ||
+            p.bullets.some((b) => b.trim()),
+        );
+        if (!projects.length) break;
         lines.push('', sectionHeading('projects', config).toUpperCase());
-        for (const p of normalized.projects) {
+        projects.forEach((p, index) => {
           if (p.name) lines.push(p.name);
           if (p.url) lines.push(p.url);
           if (p.description) lines.push(p.description);
           for (const b of p.bullets) {
             if (b.trim()) lines.push(`• ${b.trim()}`);
           }
-        }
+          if (index < projects.length - 1) lines.push('');
+        });
         break;
       }
       case 'custom': {
@@ -224,6 +242,53 @@ export function renderResumePlainText(content: AtsResumeContent): string {
   }
 
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+export function visibleExperienceRoles(
+  experience: AtsResumeContent['experience'],
+) {
+  return experience.filter(
+    (exp) =>
+      exp.title.trim() ||
+      exp.company.trim() ||
+      exp.bullets.some((b) => b.trim()),
+  );
+}
+
+export function visibleEducationEntries(
+  education: AtsResumeContent['education'],
+) {
+  return education.filter(
+    (ed) => ed.school.trim() || ed.degree.trim() || ed.field?.trim(),
+  );
+}
+
+export function visibleProjects(projects: AtsResumeContent['projects']) {
+  return projects.filter(
+    (p) =>
+      p.name.trim() ||
+      p.description?.trim() ||
+      p.url?.trim() ||
+      p.bullets.some((b) => b.trim()),
+  );
+}
+
+export function visibleCustomSections(
+  sections: AtsResumeContent['customSections'],
+) {
+  return sections.filter(
+    (block) => block.title.trim() || block.content.trim(),
+  );
+}
+
+export function formatRoleDateRange(
+  startDate?: string,
+  endDate?: string,
+  current?: boolean,
+): string {
+  return [startDate, endDate ?? (current ? 'Present' : '')]
+    .filter(Boolean)
+    .join(' - ');
 }
 
 export function computeAtsReadinessScore(content: AtsResumeContent): number {

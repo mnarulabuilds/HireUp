@@ -1,9 +1,18 @@
 import type { ResumeContent, SectionType } from '@hireup/shared';
 import {
   enabledSections,
+  formatRoleDateRange,
   normalizeSectionConfig,
   sectionHeading,
+  visibleCustomSections,
+  visibleEducationEntries,
+  visibleExperienceRoles,
+  visibleProjects,
 } from '@hireup/shared';
+
+function ResumeSectionTitle({ children }: { children: string }) {
+  return <h2 className="resume-doc-section-title">{children}</h2>;
+}
 
 export function ResumePreview({
   title,
@@ -14,116 +23,198 @@ export function ResumePreview({
 }) {
   const config = normalizeSectionConfig(content.sectionConfig);
   const sections = enabledSections(config);
+  const displayName = content.basics.fullName.trim() || title || 'Preview';
+
+  const contactParts = [
+    content.basics.email?.trim(),
+    content.basics.phone?.trim(),
+    content.basics.location?.trim(),
+  ].filter(Boolean);
+
+  for (const link of content.basics.links ?? []) {
+    if (!link.url?.trim()) continue;
+    const label = link.label?.trim() || 'Link';
+    contactParts.push(`${label}: ${link.url.trim()}`);
+  }
 
   function renderSection(sectionType: SectionType) {
     switch (sectionType) {
       case 'summary':
-        if (!content.summary) return null;
+        if (!content.summary.trim()) return null;
         return (
-          <div key="summary">
-            <h3>{sectionHeading('summary', config)}</h3>
-            <p>{content.summary}</p>
-          </div>
+          <section key="summary" className="resume-doc-section">
+            <ResumeSectionTitle>{sectionHeading('summary', config)}</ResumeSectionTitle>
+            <p className="resume-doc-summary">{content.summary.trim()}</p>
+          </section>
         );
-      case 'experience':
-        if (!content.experience.length) return null;
+      case 'experience': {
+        const roles = visibleExperienceRoles(content.experience);
+        if (!roles.length) return null;
         return (
-          <div key="experience">
-            <h3>{sectionHeading('experience', config)}</h3>
-            {content.experience.map((exp, i) => (
-              <div key={`${exp.company}-${exp.title}-${i}`} style={{ marginBottom: '0.8rem' }}>
-                <strong>
-                  {exp.title}
-                  {exp.company ? ` — ${exp.company}` : ''}
-                </strong>
-                {(exp.startDate || exp.endDate) && (
-                  <p className="muted" style={{ margin: '0.15rem 0', fontSize: '0.85rem' }}>
-                    {[exp.startDate, exp.endDate ?? (exp.current ? 'Present' : '')]
-                      .filter(Boolean)
-                      .join(' – ')}
-                  </p>
-                )}
-                <ul>
-                  {exp.bullets.map((b, bi) => (
-                    <li key={`${bi}-${b.slice(0, 24)}`}>{b}</li>
-                  ))}
-                </ul>
-              </div>
+          <section key="experience" className="resume-doc-section">
+            <ResumeSectionTitle>{sectionHeading('experience', config)}</ResumeSectionTitle>
+            <div className="resume-entry-list">
+              {roles.map((exp, i) => {
+                const titleLine = [exp.title.trim(), exp.company.trim()]
+                  .filter(Boolean)
+                  .join(', ');
+                const dates = formatRoleDateRange(
+                  exp.startDate,
+                  exp.endDate,
+                  exp.current,
+                );
+                const bullets = exp.bullets.map((b) => b.trim()).filter(Boolean);
+                return (
+                  <article
+                    key={`${exp.company}-${exp.title}-${i}`}
+                    className="resume-entry"
+                  >
+                    {(titleLine || dates) && (
+                      <div className="resume-entry-head">
+                        {titleLine ? (
+                          <span className="resume-entry-title">{titleLine}</span>
+                        ) : (
+                          <span />
+                        )}
+                        {dates ? (
+                          <span className="resume-entry-dates">{dates}</span>
+                        ) : null}
+                      </div>
+                    )}
+                    {exp.location?.trim() ? (
+                      <p className="resume-entry-meta">{exp.location.trim()}</p>
+                    ) : null}
+                    {bullets.length > 0 ? (
+                      <ul className="resume-bullets">
+                        {bullets.map((b, bi) => (
+                          <li key={`${bi}-${b.slice(0, 24)}`}>{b}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      }
+      case 'education': {
+        const entries = visibleEducationEntries(content.education);
+        if (!entries.length) return null;
+        return (
+          <section key="education" className="resume-doc-section">
+            <ResumeSectionTitle>{sectionHeading('education', config)}</ResumeSectionTitle>
+            <div className="resume-entry-list">
+              {entries.map((ed, i) => {
+                const line = [ed.degree.trim(), ed.field?.trim(), ed.school.trim()]
+                  .filter(Boolean)
+                  .join(', ');
+                const dates = [ed.startDate, ed.endDate].filter(Boolean).join(' - ');
+                return (
+                  <article key={`${ed.school}-${i}`} className="resume-entry resume-entry-compact">
+                    {(line || dates) && (
+                      <div className="resume-entry-head">
+                        {line ? <span className="resume-entry-title">{line}</span> : <span />}
+                        {dates ? (
+                          <span className="resume-entry-dates">{dates}</span>
+                        ) : null}
+                      </div>
+                    )}
+                    {ed.details?.trim() ? (
+                      <p className="resume-entry-body">{ed.details.trim()}</p>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      }
+      case 'skills': {
+        const skills = content.skills.map((s) => s.trim()).filter(Boolean);
+        if (!skills.length) return null;
+        return (
+          <section key="skills" className="resume-doc-section">
+            <ResumeSectionTitle>{sectionHeading('skills', config)}</ResumeSectionTitle>
+            <p className="resume-doc-skills">{skills.join(', ')}</p>
+          </section>
+        );
+      }
+      case 'projects': {
+        const projects = visibleProjects(content.projects);
+        if (!projects.length) return null;
+        return (
+          <section key="projects" className="resume-doc-section">
+            <ResumeSectionTitle>{sectionHeading('projects', config)}</ResumeSectionTitle>
+            <div className="resume-entry-list">
+              {projects.map((p, i) => {
+                const bullets = p.bullets.map((b) => b.trim()).filter(Boolean);
+                return (
+                  <article key={`${p.name}-${i}`} className="resume-entry">
+                    {p.name.trim() ? (
+                      <p className="resume-entry-title resume-entry-title-block">
+                        {p.name.trim()}
+                      </p>
+                    ) : null}
+                    {p.url?.trim() ? (
+                      <p className="resume-entry-meta">{p.url.trim()}</p>
+                    ) : null}
+                    {p.description?.trim() ? (
+                      <p className="resume-entry-body">{p.description.trim()}</p>
+                    ) : null}
+                    {bullets.length > 0 ? (
+                      <ul className="resume-bullets">
+                        {bullets.map((b, bi) => (
+                          <li key={`${bi}-${b.slice(0, 24)}`}>{b}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      }
+      case 'custom': {
+        const blocks = visibleCustomSections(content.customSections);
+        if (!blocks.length) return null;
+        return (
+          <div key="custom" className="resume-doc-custom-group">
+            {blocks.map((block) => (
+              <section key={block.title || block.content} className="resume-doc-section">
+                <ResumeSectionTitle>
+                  {block.title.trim() || 'Additional'}
+                </ResumeSectionTitle>
+                <p className="resume-entry-body">{block.content.trim()}</p>
+              </section>
             ))}
           </div>
         );
-      case 'education':
-        if (!content.education.length) return null;
-        return (
-          <div key="education">
-            <h3>{sectionHeading('education', config)}</h3>
-            {content.education.map((ed, i) => (
-              <p key={`${ed.school}-${i}`} style={{ margin: '0.25rem 0' }}>
-                {[ed.degree, ed.field, ed.school].filter(Boolean).join(' — ')}
-              </p>
-            ))}
-          </div>
-        );
-      case 'skills':
-        if (!content.skills.length) return null;
-        return (
-          <div key="skills">
-            <h3>{sectionHeading('skills', config)}</h3>
-            <p>{content.skills.join(', ')}</p>
-          </div>
-        );
-      case 'projects':
-        if (!content.projects.length) return null;
-        return (
-          <div key="projects">
-            <h3>{sectionHeading('projects', config)}</h3>
-            {content.projects.map((p, i) => (
-              <div key={`${p.name}-${i}`}>
-                <strong>{p.name}</strong>
-                {p.description && <p className="muted">{p.description}</p>}
-              </div>
-            ))}
-          </div>
-        );
-      case 'custom':
-        if (!content.customSections.length) return null;
-        return (
-          <div key="custom">
-            {content.customSections.map((block) => (
-              <div key={block.title}>
-                <h3>{block.title}</h3>
-                <p>{block.content}</p>
-              </div>
-            ))}
-          </div>
-        );
+      }
       default:
         return null;
     }
   }
 
   return (
-    <aside className="panel stack resume-preview" aria-label="Resume preview">
-      <h2 style={{ margin: 0 }}>{content.basics.fullName || title || 'Preview'}</h2>
-      {content.basics.headline && (
-        <p className="muted">{content.basics.headline}</p>
-      )}
-      <p className="muted" style={{ fontSize: '0.9rem' }}>
-        {[content.basics.email, content.basics.phone, content.basics.location]
-          .filter(Boolean)
-          .join(' · ')}
-      </p>
-      {content.basics.links?.length > 0 && (
-        <ul className="preview-links">
-          {content.basics.links.map((l) => (
-            <li key={`${l.label}-${l.url}`}>
-              {l.label}: {l.url}
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="resume-document-shell">
+      <p className="resume-document-label">Live preview</p>
+      <aside className="resume-document" aria-label="Resume preview">
+        <header className="resume-doc-header">
+          <h1 className="resume-doc-name">{displayName}</h1>
+          {content.basics.headline?.trim() ? (
+            <p className="resume-doc-headline">{content.basics.headline.trim()}</p>
+          ) : null}
+          {contactParts.length > 0 ? (
+            <p className="resume-doc-contact">{contactParts.join(' | ')}</p>
+          ) : null}
+        </header>
 
-      {sections.map((sectionType) => renderSection(sectionType))}
-    </aside>
+        <div className="resume-doc-body">
+          {sections.map((sectionType) => renderSection(sectionType))}
+        </div>
+      </aside>
+    </div>
   );
 }

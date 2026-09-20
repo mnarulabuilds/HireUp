@@ -3,12 +3,16 @@ import type { ResumeContent } from './index';
 import {
   computeAtsReadinessScore,
   defaultSectionConfig,
+  formatRoleDateRange,
   getResumeSuggestions,
   isValidSectionType,
   normalizeSectionConfig,
   reorderSectionConfig,
   renderResumePlainText,
   sectionHeading,
+  visibleEducationEntries,
+  visibleExperienceRoles,
+  visibleProjects,
 } from './resume-ats';
 
 const sampleContent = (): ResumeContent => ({
@@ -48,6 +52,30 @@ const sampleContent = (): ResumeContent => ({
   projects: [],
   customSections: [],
   sectionConfig: defaultSectionConfig(),
+});
+
+describe('resume presentation helpers', () => {
+  it('filters empty experience, education, and project rows', () => {
+    expect(
+      visibleExperienceRoles([
+        { company: '', title: '', bullets: [] },
+        { company: 'Acme', title: 'Engineer', bullets: ['Shipped'] },
+      ]),
+    ).toHaveLength(1);
+    expect(
+      visibleEducationEntries([{ school: '', degree: '', field: '' }, { school: 'MIT', degree: 'BS' }]),
+    ).toHaveLength(1);
+    expect(
+      visibleProjects([
+        { name: '', bullets: [] },
+        { name: '', description: 'Only description', bullets: [] },
+      ]),
+    ).toHaveLength(1);
+  });
+
+  it('formats current role dates with Present', () => {
+    expect(formatRoleDateRange('2020', undefined, true)).toBe('2020 - Present');
+  });
 });
 
 describe('normalizeSectionConfig', () => {
@@ -110,6 +138,44 @@ describe('renderResumePlainText', () => {
     ]);
     const text = renderResumePlainText(content);
     expect(text).not.toContain('EDUCATION');
+  });
+
+  it('skips blank experience rows and avoids trailing whitespace', () => {
+    const content = sampleContent();
+    content.experience = [
+      { company: '', title: '', bullets: [] },
+      {
+        company: 'Acme',
+        title: 'Engineer',
+        startDate: '2021',
+        bullets: ['Shipped feature'],
+      },
+    ];
+    const text = renderResumePlainText(content);
+    expect(text).toContain('Engineer — Acme');
+    expect(text).not.toMatch(/\n{3,}/);
+  });
+
+  it('renders project entries from url, description, or bullets only', () => {
+    const content = sampleContent();
+    content.sectionConfig = normalizeSectionConfig([
+      { type: 'summary', enabled: false },
+      { type: 'experience', enabled: false },
+      { type: 'education', enabled: false },
+      { type: 'skills', enabled: false },
+      { type: 'projects', enabled: true },
+      { type: 'custom', enabled: false },
+    ]);
+    content.projects = [
+      { name: '', url: '', description: '', bullets: [] },
+      { name: '', url: 'https://example.com', description: 'Weekend build', bullets: [] },
+      { name: 'Portfolio', url: '', description: '', bullets: ['Shipped MVP'] },
+    ];
+    const text = renderResumePlainText(content);
+    expect(text).toContain('https://example.com');
+    expect(text).toContain('Weekend build');
+    expect(text).toContain('Portfolio');
+    expect(text).toContain('Shipped MVP');
   });
 });
 
