@@ -1,35 +1,27 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ResumeContent, emptyResumeContent } from '@hireup/shared';
-import mammoth from 'mammoth';
-// pdf-parse has no perfect default ESM interop
-import pdfParse from 'pdf-parse';
+import {
+  RESUME_FORMAT_EXTRACTORS,
+  type ResumeFormatExtractor,
+} from './resume-format.extractors';
 
 @Injectable()
 export class ResumeParserService {
+  private readonly formatExtractors: ResumeFormatExtractor[] = RESUME_FORMAT_EXTRACTORS;
+
   async parse(file: Express.Multer.File): Promise<ResumeContent> {
     if (!file?.buffer?.length) {
       throw new BadRequestException('Empty file');
     }
 
-    const mime = file.mimetype;
-    let text = '';
-
-    if (mime === 'application/pdf' || file.originalname.endsWith('.pdf')) {
-      const parsed = await pdfParse(file.buffer);
-      text = parsed.text;
-    } else if (
-      mime ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.originalname.endsWith('.docx')
-    ) {
-      const parsed = await mammoth.extractRawText({ buffer: file.buffer });
-      text = parsed.value;
-    } else if (mime.startsWith('text/') || file.originalname.endsWith('.txt')) {
-      text = file.buffer.toString('utf8');
-    } else {
+    const extractor = this.formatExtractors.find((candidate) =>
+      candidate.supports(file),
+    );
+    if (!extractor) {
       throw new BadRequestException('Supported formats: PDF, DOCX, TXT');
     }
 
+    const text = await extractor.extractText(file);
     return this.heuristicExtract(text);
   }
 

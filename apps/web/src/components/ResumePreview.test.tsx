@@ -46,4 +46,45 @@ describe('ResumePreview', () => {
     render(<ResumePreview title="T" content={content} />);
     expect(screen.getByText('Side app')).toBeInTheDocument();
   });
+
+  it('renders headline, links, and contact line', () => {
+    const content = emptyResumeContent();
+    content.basics.headline = 'Platform engineer';
+    content.basics.email = 'alex@example.com';
+    content.basics.phone = '555-0100';
+    content.basics.location = 'NYC';
+    content.basics.links = [{ label: 'GitHub', url: 'https://github.com/alex' }];
+    render(<ResumePreview title="Fallback title" content={content} />);
+    expect(screen.getByText('Platform engineer')).toBeInTheDocument();
+    expect(screen.getByText(/alex@example.com/)).toBeInTheDocument();
+    expect(screen.getByText(/GitHub:/)).toBeInTheDocument();
+  });
+
+  it('uses title when name is missing and shows Present for current roles', () => {
+    const content = emptyResumeContent();
+    content.basics.fullName = '';
+    content.experience = [
+      {
+        company: 'Co',
+        title: 'Lead',
+        startDate: '2022',
+        current: true,
+        bullets: ['Delivered platform'],
+      },
+    ];
+    render(<ResumePreview title="Draft resume" content={content} />);
+    expect(screen.getByText('Draft resume')).toBeInTheDocument();
+    expect(screen.getByText(/Present/)).toBeInTheDocument();
+  });
+
+  it('renders custom sections when enabled', () => {
+    const content = emptyResumeContent();
+    content.sectionConfig = content.sectionConfig!.map((s) =>
+      s.type === 'custom' ? { ...s, enabled: true } : s,
+    );
+    content.customSections = [{ title: 'Awards', content: 'Best hackathon 2024' }];
+    render(<ResumePreview title="T" content={content} />);
+    expect(screen.getByText('Awards')).toBeInTheDocument();
+    expect(screen.getByText('Best hackathon 2024')).toBeInTheDocument();
+  });
 });

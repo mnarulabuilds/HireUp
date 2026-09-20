@@ -21,6 +21,7 @@ export function ScoreBars({ scores }: { scores: MatchScores }) {
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={scores[key]}
+            aria-valuetext={`${scores[key]} out of 100`}
           >
             <span style={{ width: `${Math.max(0, Math.min(100, scores[key]))}%` }} />
           </div>

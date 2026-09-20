@@ -1,6 +1,6 @@
 :root {
   --ink: #132018;
-  --ink-soft: #3a4a40;
+  --ink-soft: #2f3d34;
   --paper: #f3f7f2;
   --mist: #d7e5d9;
   --leaf: #1f6b45;
@@ -33,7 +33,6 @@ body {
     radial-gradient(1200px 600px at 10% -10%, rgba(196, 92, 38, 0.16), transparent 55%),
     radial-gradient(900px 500px at 100% 0%, rgba(31, 107, 69, 0.18), transparent 50%),
     linear-gradient(180deg, #eef5ef 0%, var(--paper) 45%, #e7f0e8 100%);
-  background-attachment: fixed;
 }
 
 a {
@@ -100,6 +99,8 @@ h3,
   border: 0;
   border-radius: 999px;
   padding: 0.7rem 1.2rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
   cursor: pointer;
   transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
@@ -138,16 +139,17 @@ h3,
   isolation: isolate;
 }
 
-.hero::before {
-  content: '';
+.hero-bg {
+  object-fit: cover;
+  z-index: -2;
+}
+
+.hero-overlay {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(120deg, rgba(15, 61, 40, 0.72), rgba(15, 61, 40, 0.28)),
-    url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=2000&q=80')
-      center/cover no-repeat;
   z-index: -1;
-  animation: heroDrift 18s ease-in-out infinite alternate;
+  background: linear-gradient(120deg, rgba(15, 61, 40, 0.78), rgba(15, 61, 40, 0.35));
+  pointer-events: none;
 }
 
 @keyframes heroDrift {
@@ -195,6 +197,12 @@ h3,
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.hero-secondary {
+  color: #f7faf7;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .section {
@@ -267,6 +275,11 @@ h3,
 
 .muted {
   color: var(--ink-soft);
+}
+
+.form-error {
+  margin: 0;
+  color: #9b1c1c;
 }
 
 .score-row {
@@ -387,7 +400,8 @@ h3,
   border-radius: 0 0 8px 8px;
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
   left: 1rem;
 }
 

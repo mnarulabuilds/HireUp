@@ -193,6 +193,40 @@ describe('edge suggestions', () => {
     expect(suggestions.some((s) => s.id === 'education-suggest')).toBe(true);
   });
 
+  it('suggests phone, short summary, and skill list sizing', () => {
+    const content = sampleContent();
+    content.basics.phone = '';
+    content.summary = 'Short summary.';
+    content.skills = ['Go', 'Rust'];
+    const suggestions = getResumeSuggestions(content);
+    expect(suggestions.some((s) => s.id === 'basics-phone')).toBe(true);
+    expect(suggestions.some((s) => s.id === 'summary-short')).toBe(true);
+    expect(suggestions.some((s) => s.id === 'skills-few')).toBe(true);
+
+    content.skills = Array.from({ length: 30 }, (_, i) => `Skill${i}`);
+    const many = getResumeSuggestions(content);
+    expect(many.some((s) => s.id === 'skills-many')).toBe(true);
+  });
+
+  it('flags missing summary and incomplete experience metadata', () => {
+    const content = sampleContent();
+    content.summary = '';
+    content.experience = [
+      {
+        company: '',
+        title: '',
+        startDate: '',
+        endDate: '',
+        current: false,
+        bullets: ['Led migration by 30% and built APIs'],
+      },
+    ];
+    const suggestions = getResumeSuggestions(content);
+    expect(suggestions.some((s) => s.id === 'summary-missing')).toBe(true);
+    expect(suggestions.some((s) => s.id.startsWith('exp-title'))).toBe(true);
+    expect(suggestions.some((s) => s.id.startsWith('exp-dates'))).toBe(true);
+  });
+
   it('flags long summary and weak experience bullets', () => {
     const content = sampleContent();
     content.summary = 'x'.repeat(650);

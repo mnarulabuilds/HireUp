@@ -13,4 +13,11 @@ describe('ResumePdfService', () => {
     expect(buffer.length).toBeGreaterThan(100);
     expect(buffer.subarray(0, 4).toString()).toBe('%PDF');
   });
+
+  it('uses a fallback author when the resume has no name', async () => {
+    const content = emptyResumeContent();
+    content.summary = 'Anonymous export.';
+    const buffer = await service.buildPdf(content, 'Untitled');
+    expect(buffer.length).toBeGreaterThan(100);
+  });
 });

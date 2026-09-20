@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { JsonLd } from '@/components/JsonLd';
 
@@ -36,6 +37,17 @@ export default function HomePage() {
         }}
       />
       <section className="hero">
+        <Image
+          className="hero-bg"
+          src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=2000&q=75"
+          alt=""
+          fill
+          priority
+          fetchPriority="high"
+          sizes="100vw"
+          quality={75}
+        />
+        <div className="hero-overlay" aria-hidden="true" />
         <div className="container hero-content">
           <h1 className="hero-brand">HireUp</h1>
           <p className="hero-copy">
@@ -46,7 +58,7 @@ export default function HomePage() {
             <Link href="/login" className="btn btn-primary">
               Start building
             </Link>
-            <Link href="/pricing" className="btn btn-secondary" style={{ color: 'white', borderColor: 'rgba(255,255,255,0.35)' }}>
+            <Link href="/pricing" className="btn btn-secondary hero-secondary">
               See pricing
             </Link>
           </div>

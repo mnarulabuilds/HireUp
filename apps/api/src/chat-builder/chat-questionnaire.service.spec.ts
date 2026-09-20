@@ -40,4 +40,27 @@ describe('ChatQuestionnaireService', () => {
     expect(content.education[0]?.school).toBe('State U');
     expect(service.buildInitialContent().basics.fullName).toBe('');
   });
+
+  it('ignores unknown question ids', () => {
+    const content = emptyResumeContent();
+    const next = service.applyAnswer(content, 'unknown', 'value');
+    expect(next).toEqual(content);
+  });
+
+  it('applies role and education defaults when pipe segments are empty', () => {
+    let content = emptyResumeContent();
+    content = service.applyAnswer(content, 'latestRole', ' |  | ');
+    expect(content.experience[0]).toMatchObject({
+      title: 'Role',
+      company: 'Company',
+      bullets: [],
+    });
+
+    content = service.applyAnswer(content, 'education', ' |  | ');
+    expect(content.education[0]).toMatchObject({
+      degree: 'Degree',
+      school: 'School',
+      field: undefined,
+    });
+  });
 });

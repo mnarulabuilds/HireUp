@@ -58,6 +58,7 @@ export function ResumeSectionControls({ content, onChange }: Props) {
             <label className="section-toggle">
               <input
                 type="checkbox"
+                aria-label={`Include ${LABELS[item.type]} section`}
                 checked={item.enabled}
                 onChange={(e) => {
                   const next = config.map((c) =>

@@ -22,7 +22,7 @@ export function ResumeSuggestionsPanel({ resumeId }: { resumeId: string }) {
   if (error) {
     return (
       <section className="panel" role="alert">
-        <p style={{ margin: 0, color: '#9b1c1c' }}>{error}</p>
+        <p className="form-error">{error}</p>
       </section>
     );
   }

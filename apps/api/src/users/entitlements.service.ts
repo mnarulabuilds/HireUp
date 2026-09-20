@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ENTITLEMENTS, FeatureKey, PlanTier } from '@hireup/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { ENTITLEMENT_GATE_BY_FEATURE } from './entitlement-feature.gates';
 
 @Injectable()
 export class EntitlementsService {
@@ -25,48 +26,25 @@ export class EntitlementsService {
 
     const plan = user.plan as PlanTier;
     const limits = this.getLimits(plan);
-
-    if (feature === 'richFeedback') {
-      return { allowed: limits.richFeedback, plan, reason: limits.richFeedback ? undefined : 'Upgrade to Pro for richer feedback' };
-    }
-    if (feature === 'export') {
-      return { allowed: limits.exportEnabled, plan, reason: limits.exportEnabled ? undefined : 'Export requires Pro' };
-    }
-    if (feature === 'coaching') {
-      return {
-        allowed: limits.coachingIncluded,
-        plan,
-        reason: limits.coachingIncluded ? undefined : 'Purchase Coach to unlock interview prep',
-      };
+    const gate = ENTITLEMENT_GATE_BY_FEATURE.get(feature);
+    if (!gate) {
+      return { allowed: false, plan, reason: 'Unknown feature' };
     }
 
-    if (feature === 'createResume') {
-      const count = await this.prisma.resume.count({ where: { userId } });
-      const allowed = count < limits.maxResumes;
-      return {
-        allowed,
-        plan,
-        reason: allowed ? undefined : `Free plan allows ${limits.maxResumes} resume(s)`,
-      };
-    }
+    const monthKey = this.monthKey();
+    const resumeCount =
+      feature === 'createResume'
+        ? await this.prisma.resume.count({ where: { userId } })
+        : undefined;
 
-    if (feature === 'runMatch') {
-      const key = this.monthKey();
-      let used = user.matchesUsedMonth;
-      if (user.matchMonthKey !== key) {
-        used = 0;
-      }
-      const allowed = used < limits.maxMatchesPerMonth;
-      return {
-        allowed,
-        plan,
-        reason: allowed
-          ? undefined
-          : `Free plan allows ${limits.maxMatchesPerMonth} matches per month`,
-      };
-    }
-
-    return { allowed: false, plan, reason: 'Unknown feature' };
+    return gate.evaluate({
+      userId,
+      user,
+      plan,
+      limits,
+      monthKey,
+      resumeCount,
+    });
   }
 
   async consumeMatch(userId: string) {

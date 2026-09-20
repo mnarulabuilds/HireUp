@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import type { ResumeContent } from '@hireup/shared';
@@ -8,9 +9,36 @@ import { emptyResumeContent } from '@hireup/shared';
 import { api } from '@/lib/api';
 import { downloadResumeExport } from '@/lib/download';
 import { ResumePreview } from '@/components/ResumePreview';
-import { ResumeEditorForm } from '@/components/ResumeEditorForm';
-import { ResumeSectionControls } from '@/components/ResumeSectionControls';
-import { ResumeSuggestionsPanel } from '@/components/ResumeSuggestionsPanel';
+
+function PanelSkeleton({ label }: { label: string }) {
+  return (
+    <section className="panel stack" aria-busy="true" aria-label={label}>
+      <div className="skeleton" />
+      <div className="skeleton" />
+    </section>
+  );
+}
+
+const ResumeEditorForm = dynamic(
+  () => import('@/components/ResumeEditorForm').then((m) => ({ default: m.ResumeEditorForm })),
+  { loading: () => <PanelSkeleton label="Loading resume editor" /> },
+);
+
+const ResumeSectionControls = dynamic(
+  () =>
+    import('@/components/ResumeSectionControls').then((m) => ({
+      default: m.ResumeSectionControls,
+    })),
+  { loading: () => <PanelSkeleton label="Loading section controls" /> },
+);
+
+const ResumeSuggestionsPanel = dynamic(
+  () =>
+    import('@/components/ResumeSuggestionsPanel').then((m) => ({
+      default: m.ResumeSuggestionsPanel,
+    })),
+  { loading: () => <PanelSkeleton label="Loading suggestions" /> },
+);
 
 type ResumeResponse = {
   id: string;
@@ -121,12 +149,12 @@ export default function EditResumePage() {
         </div>
 
         {error && (
-          <p role="alert" style={{ color: '#9b1c1c' }}>
+          <p role="alert" aria-live="assertive" className="form-error">
             {error}
           </p>
         )}
         {exportError && (
-          <p role="alert" style={{ color: '#9b1c1c' }}>
+          <p role="alert" aria-live="assertive" className="form-error">
             {exportError}
           </p>
         )}

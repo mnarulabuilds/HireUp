@@ -87,6 +87,41 @@ describe('ResumesService', () => {
     expect(result.id).toBe('new');
   });
 
+  it('creates resume with provided content', async () => {
+    entitlements.can.mockResolvedValue({ allowed: true });
+    prisma.resume.create.mockResolvedValue({ id: 'new-content' });
+    const payload = emptyResumeContent();
+    payload.basics.fullName = 'Taylor';
+    await service.create('u1', {
+      title: 'Taylor CV',
+      source: 'FORM',
+      content: payload,
+    });
+    expect(prisma.resume.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          content: expect.objectContaining({
+            basics: expect.objectContaining({ fullName: 'Taylor' }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('blocks create when entitlement denied', async () => {
+    entitlements.can.mockResolvedValue({ allowed: false, reason: 'Limit' });
+    await expect(
+      service.create('u1', { title: 'New', source: 'FORM' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks upload when entitlement denied', async () => {
+    entitlements.can.mockResolvedValue({ allowed: false, reason: 'Limit' });
+    await expect(
+      service.createFromUpload('u1', { originalname: 'cv.pdf' } as Express.Multer.File),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('updates resume content', async () => {
     prisma.resume.findFirst.mockResolvedValue({
       id: 'r1',
@@ -97,6 +132,32 @@ describe('ResumesService', () => {
     prisma.resume.update.mockResolvedValue({ id: 'r1' });
     await service.update('u1', 'r1', { title: 'Updated' });
     expect(prisma.resume.update).toHaveBeenCalled();
+  });
+
+  it('updates status and normalized content', async () => {
+    prisma.resume.findFirst.mockResolvedValue({
+      id: 'r1',
+      userId: 'u1',
+      title: 'Resume',
+      content: emptyResumeContent(),
+    });
+    prisma.resume.update.mockResolvedValue({ id: 'r1' });
+    const next = emptyResumeContent();
+    next.basics.fullName = 'Updated Name';
+    await service.update('u1', 'r1', {
+      status: 'READY',
+      content: next,
+    });
+    expect(prisma.resume.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'READY',
+          content: expect.objectContaining({
+            basics: expect.objectContaining({ fullName: 'Updated Name' }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('exports plain text when allowed', async () => {
@@ -121,6 +182,20 @@ describe('ResumesService', () => {
     expect(created.id).toBe('up');
   });
 
+  it('names uploaded resumes from parsed full name', async () => {
+    entitlements.can.mockResolvedValue({ allowed: true });
+    const parsed = emptyResumeContent();
+    parsed.basics.fullName = 'Jordan Lee';
+    parser.parse.mockResolvedValue(parsed);
+    prisma.resume.create.mockResolvedValue({ id: 'named' });
+    await service.createFromUpload('u1', { originalname: 'cv.pdf' } as Express.Multer.File);
+    expect(prisma.resume.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: 'Jordan Lee Resume' }),
+      }),
+    );
+  });
+
   it('deletes resume', async () => {
     prisma.resume.findFirst.mockResolvedValue({
       id: 'r1',
@@ -143,5 +218,18 @@ describe('ResumesService', () => {
     const result = await service.exportPdf('u1', 'r1');
     expect(result.filename).toMatch(/\.pdf$/);
     expect(pdf.buildPdf).toHaveBeenCalled();
+  });
+
+  it('blocks pdf export when entitlement denied', async () => {
+    entitlements.can.mockResolvedValue({ allowed: false, reason: 'Upgrade' });
+    prisma.resume.findFirst.mockResolvedValue({
+      id: 'r1',
+      userId: 'u1',
+      title: 'My Resume',
+      content: emptyResumeContent(),
+    });
+    await expect(service.exportPdf('u1', 'r1')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 });
