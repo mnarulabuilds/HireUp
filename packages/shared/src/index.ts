@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { defaultSectionConfig } from './resume-ats';
 
 export const PlanTier = z.enum(['FREE', 'PRO', 'COACH']);
 export type PlanTier = z.infer<typeof PlanTier>;
@@ -56,6 +57,16 @@ export const ResumeBasicsSchema = z.object({
     .default([]),
 });
 
+export const ResumeSectionConfigItemSchema = z.object({
+  type: SectionType,
+  enabled: z.boolean().default(true),
+  heading: z.string().min(1).max(80).optional(),
+});
+
+export type ResumeSectionConfigItem = z.infer<
+  typeof ResumeSectionConfigItemSchema
+>;
+
 export const ResumeContentSchema = z.object({
   basics: ResumeBasicsSchema.default({}),
   summary: z.string().default(''),
@@ -71,12 +82,30 @@ export const ResumeContentSchema = z.object({
       }),
     )
     .default([]),
+  sectionConfig: z.array(ResumeSectionConfigItemSchema).optional(),
 });
 
 export type ResumeContent = z.infer<typeof ResumeContentSchema>;
 
+export {
+  ATS_SECTION_HEADINGS,
+  DEFAULT_SECTION_ORDER,
+  computeAtsReadinessScore,
+  defaultSectionConfig,
+  enabledSections,
+  getResumeSuggestions,
+  normalizeResumeContent,
+  normalizeSectionConfig,
+  renderResumePlainText,
+  sectionHeading,
+} from './resume-ats';
+export type {
+  ResumeSuggestion,
+  SuggestionSeverity,
+} from './resume-ats';
+
 export const emptyResumeContent = (): ResumeContent =>
-  ResumeContentSchema.parse({});
+  ResumeContentSchema.parse({ sectionConfig: defaultSectionConfig() });
 
 export const CreateResumeSchema = z.object({
   title: z.string().min(1).max(120).default('Untitled Resume'),
@@ -130,7 +159,7 @@ export const ENTITLEMENTS = {
     maxResumes: 1,
     maxMatchesPerMonth: 2,
     richFeedback: false,
-    exportEnabled: false,
+    exportEnabled: true,
     coachingIncluded: false,
   },
   PRO: {
@@ -162,7 +191,7 @@ export const PLANS = [
     name: 'Free',
     priceLabel: '$0',
     description: 'Build one resume and try matching.',
-    features: ['1 resume', '2 matches / month', 'Basic score'],
+    features: ['1 resume', '2 matches / month', 'Basic score', 'PDF export'],
   },
   {
     id: 'PRO' as const,

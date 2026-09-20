@@ -1,8 +1,40 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '@/components/JsonLd';
+
+export const metadata: Metadata = {
+  title: 'Resume scoring that gets you hired',
+  description:
+    'Build ATS-friendly resumes with section-level control, job-match scoring, PDF export, and interview coaching.',
+  openGraph: {
+    title: 'HireUp — Resume scoring that gets you hired',
+    description:
+      'Structured resume building, ATS readiness suggestions, and job-match scores.',
+  },
+};
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export default function HomePage() {
   return (
     <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'HireUp',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web',
+          url: siteUrl,
+          description:
+            'Build ATS-friendly resumes, score job fit, and prepare for interviews.',
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD',
+          },
+        }}
+      />
       <section className="hero">
         <div className="container hero-content">
           <h1 className="hero-brand">HireUp</h1>

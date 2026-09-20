@@ -33,6 +33,7 @@ Without OAuth credentials, use **Dev login** on `/login` (disabled in production
 
 - SSO: Google + GitHub (optional env keys) + local dev login
 - Resume builders: forms, upload (PDF/DOCX/TXT), chat questionnaire
+- ATS section controls (enable/order/headings), live suggestions, TXT + PDF export
 - Job match scoring with OpenAI or deterministic heuristic fallback
 - Plans: Free / Pro ($11) / Coach ($19) via Stripe Checkout
 - Soft dashboard sponsored tip + donation CTA

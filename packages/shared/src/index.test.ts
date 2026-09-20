@@ -13,6 +13,7 @@ describe('ResumeContentSchema', () => {
     expect(content.basics.fullName).toBe('');
     expect(content.experience).toEqual([]);
     expect(content.skills).toEqual([]);
+    expect(content.sectionConfig?.length).toBeGreaterThan(0);
   });
 
   it('accepts a populated resume', () => {

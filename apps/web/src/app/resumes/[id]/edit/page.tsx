@@ -6,7 +6,11 @@ import { useCallback, useEffect, useState, useTransition } from 'react';
 import type { ResumeContent } from '@hireup/shared';
 import { emptyResumeContent } from '@hireup/shared';
 import { api } from '@/lib/api';
+import { downloadResumeExport } from '@/lib/download';
 import { ResumePreview } from '@/components/ResumePreview';
+import { ResumeEditorForm } from '@/components/ResumeEditorForm';
+import { ResumeSectionControls } from '@/components/ResumeSectionControls';
+import { ResumeSuggestionsPanel } from '@/components/ResumeSuggestionsPanel';
 
 type ResumeResponse = {
   id: string;
@@ -23,6 +27,7 @@ export default function EditResumePage() {
   const [status, setStatus] = useState('DRAFT');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -69,24 +74,62 @@ export default function EditResumePage() {
     });
   }
 
+  async function handleExport(format: 'txt' | 'pdf') {
+    setExportError(null);
+    try {
+      await downloadResumeExport(id, format);
+    } catch (err) {
+      setExportError((err as Error).message ?? 'Export failed');
+    }
+  }
+
   return (
     <div className="app-shell">
       <div className="container stack">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="page-toolbar">
           <Link href="/dashboard" className="muted">
             ← Dashboard
           </Link>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div className="toolbar-actions">
             <span className="muted" aria-live="polite">
-              {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : saveState === 'error' ? 'Save error' : ''}
+              {saveState === 'saving'
+                ? 'Saving…'
+                : saveState === 'saved'
+                  ? 'Saved'
+                  : saveState === 'error'
+                    ? 'Save error'
+                    : ''}
             </span>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => void handleExport('txt')}
+            >
+              Download TXT
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => void handleExport('pdf')}
+            >
+              Download PDF
+            </button>
             <Link href={`/resumes/${id}/match`} className="btn btn-primary">
               Match to a job
             </Link>
           </div>
         </div>
 
-        {error && <p style={{ color: '#9b1c1c' }}>{error}</p>}
+        {error && (
+          <p role="alert" style={{ color: '#9b1c1c' }}>
+            {error}
+          </p>
+        )}
+        {exportError && (
+          <p role="alert" style={{ color: '#9b1c1c' }}>
+            {exportError}
+          </p>
+        )}
 
         <div className="field">
           <label htmlFor="title">Resume title</label>
@@ -101,136 +144,14 @@ export default function EditResumePage() {
           />
         </div>
 
-        <div className="edit-grid">
-          <form className="panel stack" onSubmit={(e) => e.preventDefault()}>
-            <h2 style={{ margin: 0 }}>Basics</h2>
-            <div className="field">
-              <label htmlFor="fullName">Full name</label>
-              <input
-                id="fullName"
-                value={content.basics.fullName}
-                onChange={(e) =>
-                  updateContent((c) => ({
-                    ...c,
-                    basics: { ...c.basics, fullName: e.target.value },
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                value={content.basics.email}
-                onChange={(e) =>
-                  updateContent((c) => ({
-                    ...c,
-                    basics: { ...c.basics, email: e.target.value },
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="headline">Headline</label>
-              <input
-                id="headline"
-                value={content.basics.headline ?? ''}
-                onChange={(e) =>
-                  updateContent((c) => ({
-                    ...c,
-                    basics: { ...c.basics, headline: e.target.value },
-                  }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="summary">Summary</label>
-              <textarea
-                id="summary"
-                rows={4}
-                value={content.summary}
-                onChange={(e) =>
-                  updateContent((c) => ({ ...c, summary: e.target.value }))
-                }
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="skills">Skills (comma-separated)</label>
-              <input
-                id="skills"
-                value={content.skills.join(', ')}
-                onChange={(e) =>
-                  updateContent((c) => ({
-                    ...c,
-                    skills: e.target.value
-                      .split(',')
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  }))
-                }
-              />
-            </div>
-
-            <h2>Experience</h2>
-            {(content.experience[0] ? [content.experience[0]] : [{ company: '', title: '', bullets: [''] }]).map(
-              (exp, idx) => (
-                <div key={idx} className="stack">
-                  <div className="field">
-                    <label htmlFor="exp-title">Title</label>
-                    <input
-                      id="exp-title"
-                      value={exp.title}
-                      onChange={(e) =>
-                        updateContent((c) => {
-                          const experience = [...c.experience];
-                          experience[0] = {
-                            ...(experience[0] ?? { company: '', title: '', bullets: [] }),
-                            title: e.target.value,
-                          };
-                          return { ...c, experience };
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="exp-company">Company</label>
-                    <input
-                      id="exp-company"
-                      value={exp.company}
-                      onChange={(e) =>
-                        updateContent((c) => {
-                          const experience = [...c.experience];
-                          experience[0] = {
-                            ...(experience[0] ?? { company: '', title: '', bullets: [] }),
-                            company: e.target.value,
-                          };
-                          return { ...c, experience };
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="exp-bullets">Bullets (one per line)</label>
-                    <textarea
-                      id="exp-bullets"
-                      rows={4}
-                      value={(exp.bullets ?? []).join('\n')}
-                      onChange={(e) =>
-                        updateContent((c) => {
-                          const experience = [...c.experience];
-                          experience[0] = {
-                            ...(experience[0] ?? { company: '', title: '', bullets: [] }),
-                            bullets: e.target.value.split('\n').filter(Boolean),
-                          };
-                          return { ...c, experience };
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              ),
-            )}
-
+        <div className="edit-layout">
+          <div className="stack">
+            <ResumeSectionControls
+              content={content}
+              onChange={(next) => updateContent(() => next)}
+            />
+            <ResumeSuggestionsPanel resumeId={id} />
+            <ResumeEditorForm content={content} onChange={updateContent} />
             <button
               type="button"
               className="btn btn-secondary"
@@ -241,8 +162,7 @@ export default function EditResumePage() {
             >
               Mark ready ({status})
             </button>
-          </form>
-
+          </div>
           <ResumePreview title={title} content={content} />
         </div>
       </div>

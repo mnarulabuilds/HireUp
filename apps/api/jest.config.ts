@@ -7,8 +7,21 @@ const config: Config = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
-  collectCoverageFrom: ['**/*.(t|j)s'],
+  collectCoverageFrom: [
+    '**/resumes/**/*.service.ts',
+    '**/matching/resume-scoring.service.ts',
+    '**/chat-builder/chat-questionnaire.service.ts',
+    '**/users/entitlements.service.ts',
+  ],
   coverageDirectory: '../coverage',
+  coverageThreshold: {
+    global: {
+      statements: 80,
+      branches: 40,
+      functions: 80,
+      lines: 80,
+    },
+  },
   testEnvironment: 'node',
   moduleNameMapper: {
     '^@hireup/shared$': '<rootDir>/../../../packages/shared/src/index.ts',

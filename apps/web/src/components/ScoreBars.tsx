@@ -13,11 +13,18 @@ export function ScoreBars({ scores }: { scores: MatchScores }) {
     <div className="stack" data-testid="score-bars">
       {labels.map(({ key, label }) => (
         <div className="score-row" key={key}>
-          <span>{label}</span>
-          <div className="bar" aria-hidden>
+          <span id={`score-label-${key}`}>{label}</span>
+          <div
+            className="bar"
+            role="progressbar"
+            aria-labelledby={`score-label-${key}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={scores[key]}
+          >
             <span style={{ width: `${Math.max(0, Math.min(100, scores[key]))}%` }} />
           </div>
-          <strong>{scores[key]}</strong>
+          <strong aria-hidden>{scores[key]}</strong>
         </div>
       ))}
     </div>

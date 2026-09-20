@@ -46,6 +46,26 @@ export class ResumesController {
     return this.resumes.createFromUpload(user.userId, file);
   }
 
+  @Get(':id/suggestions')
+  suggestions(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.resumes.suggestions(user.userId, id);
+  }
+
+  @Get(':id/export/pdf')
+  async exportPdf(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.resumes.exportPdf(user.userId, id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    res.send(file.buffer);
+  }
+
   @Get(':id/export')
   async export(
     @CurrentUser() user: AuthUser,

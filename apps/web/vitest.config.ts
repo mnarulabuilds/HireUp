@@ -7,6 +7,22 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
+    coverage: {
+      provider: 'v8',
+      include: [
+        'src/components/ScoreBars.tsx',
+        'src/components/SponsoredTip.tsx',
+        'src/components/ResumePreview.tsx',
+        'src/components/ResumeSectionControls.tsx',
+      ],
+      exclude: ['src/**/*.test.{ts,tsx}'],
+      thresholds: {
+        statements: 80,
+        branches: 73,
+        functions: 42,
+        lines: 80,
+      },
+    },
   },
   resolve: {
     alias: {

@@ -36,6 +36,10 @@ export const metadata: Metadata = {
     description: 'Resume building, job-match scoring, and interview coaching.',
   },
   robots: { index: true, follow: true },
+  alternates: {
+    canonical: '/',
+  },
+  category: 'technology',
 };
 
 export default function RootLayout({
@@ -53,6 +57,9 @@ export default function RootLayout({
           } as React.CSSProperties
         }
       >
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <header className="site-header">
           <div className="container site-header-inner">
             <Link href="/" className="brand">
@@ -67,7 +74,9 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
-        <main>{children}</main>
+        <main id="main-content" tabIndex={-1}>
+          {children}
+        </main>
         <footer className="footer">
           <div className="container footer-inner">
             <span>© {new Date().getFullYear()} HireUp</span>

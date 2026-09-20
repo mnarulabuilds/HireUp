@@ -9,12 +9,17 @@ import {
   ResumeContentSchema,
   UpdateResumeSchema,
   emptyResumeContent,
+  computeAtsReadinessScore,
+  getResumeSuggestions,
+  normalizeResumeContent,
+  renderResumePlainText,
 } from '@hireup/shared';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EntitlementsService } from '../users/entitlements.service';
 import { ResumeParserService } from './resume-parser.service';
+import { ResumePdfService } from './resume-pdf.service';
 
 @Injectable()
 export class ResumesService {
@@ -22,6 +27,7 @@ export class ResumesService {
     private readonly prisma: PrismaService,
     private readonly entitlements: EntitlementsService,
     private readonly parser: ResumeParserService,
+    private readonly pdf: ResumePdfService,
   ) {}
 
   async list(userId: string) {
@@ -46,9 +52,20 @@ export class ResumesService {
     if (!resume) {
       throw new NotFoundException('Resume not found');
     }
+    const content = normalizeResumeContent(
+      ResumeContentSchema.parse(resume.content),
+    );
     return {
       ...resume,
-      content: ResumeContentSchema.parse(resume.content),
+      content,
+    };
+  }
+
+  async suggestions(userId: string, id: string) {
+    const resume = await this.get(userId, id);
+    return {
+      atsReadiness: computeAtsReadinessScore(resume.content),
+      suggestions: getResumeSuggestions(resume.content),
     };
   }
 
@@ -82,8 +99,8 @@ export class ResumesService {
     if (input.title) data.title = input.title;
     if (input.status) data.status = input.status;
     if (input.content) {
-      data.content = ResumeContentSchema.parse(
-        input.content,
+      data.content = normalizeResumeContent(
+        ResumeContentSchema.parse(input.content),
       ) as Prisma.InputJsonValue;
     }
     return this.prisma.resume.update({ where: { id }, data });
@@ -122,38 +139,20 @@ export class ResumesService {
     const resume = await this.get(userId, id);
     return {
       filename: `${resume.title.replace(/\s+/g, '-').toLowerCase()}.txt`,
-      body: this.renderer(resume.content),
+      body: renderResumePlainText(resume.content),
     };
   }
 
-  private renderer(content: ResumeContent) {
-    const lines: string[] = [];
-    lines.push(content.basics.fullName || 'Candidate');
-    if (content.basics.headline) lines.push(content.basics.headline);
-    lines.push(
-      [content.basics.email, content.basics.phone, content.basics.location]
-        .filter(Boolean)
-        .join(' | '),
-    );
-    if (content.summary) {
-      lines.push('', 'SUMMARY', content.summary);
+  async exportPdf(userId: string, id: string) {
+    const gate = await this.entitlements.can(userId, 'export');
+    if (!gate.allowed) {
+      throw new ForbiddenException(gate.reason);
     }
-    if (content.experience.length) {
-      lines.push('', 'EXPERIENCE');
-      for (const exp of content.experience) {
-        lines.push(`${exp.title} — ${exp.company}`);
-        for (const b of exp.bullets) lines.push(`• ${b}`);
-      }
-    }
-    if (content.education.length) {
-      lines.push('', 'EDUCATION');
-      for (const ed of content.education) {
-        lines.push(`${ed.degree} — ${ed.school}`);
-      }
-    }
-    if (content.skills.length) {
-      lines.push('', 'SKILLS', content.skills.join(', '));
-    }
-    return lines.join('\n');
+    const resume = await this.get(userId, id);
+    const buffer = await this.pdf.buildPdf(resume.content, resume.title);
+    return {
+      filename: `${resume.title.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+      buffer,
+    };
   }
 }
