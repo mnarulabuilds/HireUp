@@ -1,14 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api, authUrl } from '@/lib/api';
+import { fetchCurrentUser } from '@/lib/auth';
 
 type Providers = { google: boolean; github: boolean; dev: boolean };
 
-export default function LoginPage() {
+function safeReturnPath(next: string | null): string {
+  if (!next || !next.startsWith('/') || next.startsWith('//')) {
+    return '/dashboard';
+  }
+  return next;
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [providers, setProviders] = useState<Providers | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const returnTo = safeReturnPath(searchParams.get('next'));
+
+  useEffect(() => {
+    fetchCurrentUser().then((user) => {
+      if (user) window.location.href = returnTo;
+    });
+  }, [returnTo]);
 
   useEffect(() => {
     api<Providers>('/auth/providers')
@@ -26,7 +44,7 @@ export default function LoginPage() {
         method: 'POST',
         body: JSON.stringify({ email: 'dev@hireup.local', name: 'HireUp Dev' }),
       });
-      window.location.href = '/dashboard';
+      window.location.href = returnTo;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -67,5 +85,21 @@ export default function LoginPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="section">
+          <div className="container" style={{ maxWidth: 480 }}>
+            <div className="skeleton" style={{ height: 220, borderRadius: 12 }} />
+          </div>
+        </section>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

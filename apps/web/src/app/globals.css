@@ -91,6 +91,50 @@ h3,
   font-size: 0.95rem;
 }
 
+.user-avatar-link {
+  display: inline-flex;
+  border-radius: 999px;
+  line-height: 0;
+  box-shadow: 0 0 0 2px var(--line);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.user-avatar-link:hover {
+  box-shadow: 0 0 0 2px var(--leaf);
+  transform: translateY(-1px);
+}
+
+.user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  object-fit: cover;
+  display: block;
+}
+
+.user-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--leaf-deep);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.user-avatar-skeleton {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06),
+    rgba(0, 0, 0, 0.1),
+    rgba(0, 0, 0, 0.06)
+  );
+  animation: shimmer 1.2s infinite;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

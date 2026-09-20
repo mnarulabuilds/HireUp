@@ -56,14 +56,17 @@ export default function EditResumePage() {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [resumeLoaded, setResumeLoaded] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
+    setResumeLoaded(false);
     api<ResumeResponse>(`/resumes/${id}`)
       .then((resume) => {
         setTitle(resume.title);
         setContent(resume.content);
         setStatus(resume.status);
+        setResumeLoaded(true);
       })
       .catch((err) => {
         if (err?.status === 401) window.location.href = '/login';
@@ -178,7 +181,7 @@ export default function EditResumePage() {
               content={content}
               onChange={(next) => updateContent(() => next)}
             />
-            <ResumeSuggestionsPanel resumeId={id} />
+            <ResumeSuggestionsPanel content={resumeLoaded ? content : null} />
             <ResumeEditorForm content={content} onChange={updateContent} />
             <button
               type="button"

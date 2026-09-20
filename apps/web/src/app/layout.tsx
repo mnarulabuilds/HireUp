@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Fraunces, Sora } from 'next/font/google';
 import Link from 'next/link';
+import { SiteNav } from '@/components/SiteNav';
 import './globals.css';
 
 const display = Fraunces({
@@ -65,13 +66,7 @@ export default function RootLayout({
             <Link href="/" className="brand">
               HireUp
             </Link>
-            <nav className="nav-links" aria-label="Primary">
-              <Link href="/pricing">Pricing</Link>
-              <Link href="/tips">Tips</Link>
-              <Link href="/login" className="btn btn-primary">
-                Sign in
-              </Link>
-            </nav>
+            <SiteNav />
           </div>
         </header>
         <main id="main-content" tabIndex={-1}>

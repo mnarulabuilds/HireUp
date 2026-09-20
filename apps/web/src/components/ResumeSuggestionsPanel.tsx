@@ -1,31 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { ResumeSuggestion } from '@hireup/shared';
-import { api } from '@/lib/api';
+import { useMemo } from 'react';
+import type { ResumeContent } from '@hireup/shared';
+import {
+  computeAtsReadinessScore,
+  getResumeSuggestions,
+} from '@hireup/shared';
 
 type SuggestionsResponse = {
   atsReadiness: number;
-  suggestions: ResumeSuggestion[];
+  suggestions: ReturnType<typeof getResumeSuggestions>;
 };
 
-export function ResumeSuggestionsPanel({ resumeId }: { resumeId: string }) {
-  const [data, setData] = useState<SuggestionsResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+function buildSuggestionsData(content: ResumeContent): SuggestionsResponse {
+  const suggestions = getResumeSuggestions(content);
+  return {
+    atsReadiness: computeAtsReadinessScore(content),
+    suggestions,
+  };
+}
 
-  useEffect(() => {
-    api<SuggestionsResponse>(`/resumes/${resumeId}/suggestions`)
-      .then(setData)
-      .catch((err) => setError(err?.message ?? 'Could not load suggestions'));
-  }, [resumeId]);
-
-  if (error) {
-    return (
-      <section className="panel" role="alert">
-        <p className="form-error">{error}</p>
-      </section>
-    );
-  }
+export function ResumeSuggestionsPanel({
+  content,
+}: {
+  content: ResumeContent | null;
+}) {
+  const data = useMemo(
+    () => (content ? buildSuggestionsData(content) : null),
+    [content],
+  );
 
   if (!data) {
     return (
@@ -36,14 +39,13 @@ export function ResumeSuggestionsPanel({ resumeId }: { resumeId: string }) {
     );
   }
 
-  const grouped = data.suggestions.reduce<Record<string, ResumeSuggestion[]>>(
-    (acc, s) => {
-      acc[s.severity] = acc[s.severity] ?? [];
-      acc[s.severity]!.push(s);
-      return acc;
-    },
-    {},
-  );
+  const grouped = data.suggestions.reduce<
+    Record<string, (typeof data.suggestions)[number][]>
+  >((acc, s) => {
+    acc[s.severity] = acc[s.severity] ?? [];
+    acc[s.severity]!.push(s);
+    return acc;
+  }, {});
 
   return (
     <section className="panel stack" aria-labelledby="suggestions-heading">
@@ -55,7 +57,11 @@ export function ResumeSuggestionsPanel({ resumeId }: { resumeId: string }) {
           Score reflects structure, completeness, and export settings — not job-specific keywords.
         </p>
       </div>
-      <div className="ats-score-ring" role="img" aria-label={`ATS readiness ${data.atsReadiness} out of 100`}>
+      <div
+        className="ats-score-ring"
+        role="img"
+        aria-label={`ATS readiness ${data.atsReadiness} out of 100`}
+      >
         <strong>{data.atsReadiness}</strong>
         <span className="muted">/ 100</span>
       </div>
