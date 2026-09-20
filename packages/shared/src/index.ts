@@ -85,7 +85,7 @@ export const ResumeContentSchema = z.object({
   sectionConfig: z.array(ResumeSectionConfigItemSchema).optional(),
 });
 
-export type ResumeContent = z.infer<typeof ResumeContentSchema>;
+export type ResumeContent = z.output<typeof ResumeContentSchema>;
 
 export {
   ATS_SECTION_HEADINGS,

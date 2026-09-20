@@ -1,3 +1,5 @@
+import type { ResumeContent } from './index';
+
 export type AtsSectionType =
   | 'summary'
   | 'experience'
@@ -6,43 +8,8 @@ export type AtsSectionType =
   | 'projects'
   | 'custom';
 
-export type AtsResumeContent = {
-  basics: {
-    fullName: string;
-    email: string;
-    phone?: string;
-    location?: string;
-    headline?: string;
-    links: { label: string; url: string }[];
-  };
-  summary: string;
-  experience: {
-    company: string;
-    title: string;
-    location?: string;
-    startDate?: string;
-    endDate?: string;
-    current?: boolean;
-    bullets: string[];
-  }[];
-  education: {
-    school: string;
-    degree: string;
-    field?: string;
-    startDate?: string;
-    endDate?: string;
-    details?: string;
-  }[];
-  skills: string[];
-  projects: {
-    name: string;
-    url?: string;
-    description?: string;
-    bullets: string[];
-  }[];
-  customSections: { title: string; content: string }[];
-  sectionConfig?: ResumeSectionConfigItem[];
-};
+/** @deprecated Use {@link ResumeContent} from `@hireup/shared`. */
+export type AtsResumeContent = ResumeContent;
 
 export type ResumeSectionConfigItem = {
   type: AtsSectionType;
