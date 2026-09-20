@@ -32,20 +32,24 @@ export class MatchingService {
 
     const rich = (await this.entitlements.can(userId, 'richFeedback')).allowed;
     const resume = await this.resumes.get(userId, resumeId);
-    const hash = this.scoring.contentHash(resume.content, input.jobDescription);
+    const hash = this.scoring.contentHash(resume.content, input.jobDescription, {
+      richFeedback: rich,
+      jobTitle: input.jobTitle,
+    });
 
     const cached = await this.prisma.jobMatch.findFirst({
       where: { resumeId, contentHash: hash, userId },
       orderBy: { createdAt: 'desc' },
     });
     if (cached) {
-      return this.serialize(cached);
+      return { ...this.serialize(cached), cached: true as const };
     }
 
     const result = await this.scoring.score(
       resume.content,
       input.jobDescription,
       rich,
+      input.jobTitle,
     );
 
     await this.entitlements.consumeMatch(userId);
@@ -67,7 +71,11 @@ export class MatchingService {
       },
     });
 
-    return { ...this.serialize(created), provider: result.provider };
+    return {
+      ...this.serialize(created),
+      provider: result.provider,
+      cached: false as const,
+    };
   }
 
   async listForResume(userId: string, resumeId: string) {

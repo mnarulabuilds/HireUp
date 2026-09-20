@@ -6,6 +6,7 @@ import {
   getResumeSuggestions,
   isValidSectionType,
   normalizeSectionConfig,
+  reorderSectionConfig,
   renderResumePlainText,
   sectionHeading,
 } from './resume-ats';
@@ -54,15 +55,36 @@ describe('normalizeSectionConfig', () => {
     const config = normalizeSectionConfig([
       { type: 'skills', enabled: false },
     ]);
-    expect(config.map((c) => c.type)).toEqual([
-      'summary',
-      'experience',
-      'education',
-      'skills',
-      'projects',
-      'custom',
-    ]);
+    expect(config.map((c) => c.type)[0]).toBe('skills');
+    expect(config.map((c) => c.type)).toEqual(
+      expect.arrayContaining([
+        'summary',
+        'experience',
+        'education',
+        'skills',
+        'projects',
+        'custom',
+      ]),
+    );
     expect(config.find((c) => c.type === 'skills')?.enabled).toBe(false);
+  });
+
+  it('preserves custom section order for exports and preview', () => {
+    let reordered = defaultSectionConfig();
+    reordered = reorderSectionConfig(reordered, 'skills', -1);
+    reordered = reorderSectionConfig(reordered, 'skills', -1);
+    reordered = reorderSectionConfig(reordered, 'skills', -1);
+    expect(reordered.map((c) => c.type)[0]).toBe('skills');
+
+    const text = renderResumePlainText({
+      ...sampleContent(),
+      sectionConfig: reordered,
+    });
+    const summaryIdx = text.indexOf('PROFESSIONAL SUMMARY');
+    const skillsIdx = text.indexOf('SKILLS');
+    expect(skillsIdx).toBeGreaterThan(-1);
+    expect(summaryIdx).toBeGreaterThan(-1);
+    expect(skillsIdx).toBeLessThan(summaryIdx);
   });
 });
 

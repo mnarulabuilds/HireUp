@@ -95,14 +95,45 @@ export function normalizeSectionConfig(
 ): ResumeSectionConfigItem[] {
   const byType = new Map<AtsSectionType, ResumeSectionConfigItem>();
   for (const item of config ?? []) {
+    if (!isValidSectionType(item.type)) continue;
     byType.set(item.type, { ...item, type: item.type });
   }
-  return DEFAULT_SECTION_ORDER.map((type) => {
+
+  const orderedTypes: AtsSectionType[] = [];
+  for (const item of config ?? []) {
+    if (isValidSectionType(item.type) && !orderedTypes.includes(item.type)) {
+      orderedTypes.push(item.type);
+    }
+  }
+  for (const type of DEFAULT_SECTION_ORDER) {
+    if (!orderedTypes.includes(type)) orderedTypes.push(type);
+  }
+
+  const defaults = defaultSectionConfig();
+  return orderedTypes.map((type) => {
     const existing = byType.get(type);
     if (existing) return { ...existing, type };
-    const defaults = defaultSectionConfig();
     return defaults.find((d) => d.type === type)!;
   });
+}
+
+export function reorderSectionConfig(
+  config: ResumeSectionConfigItem[],
+  type: AtsSectionType,
+  direction: -1 | 1,
+): ResumeSectionConfigItem[] {
+  const normalized = normalizeSectionConfig(config);
+  const idx = normalized.findIndex((item) => item.type === type);
+  if (idx < 0) return normalized;
+
+  const target = idx + direction;
+  if (target < 0 || target >= normalized.length) return normalized;
+
+  const next = [...normalized];
+  const current = next[idx]!;
+  next[idx] = next[target]!;
+  next[target] = current;
+  return next;
 }
 
 export function sectionHeading(

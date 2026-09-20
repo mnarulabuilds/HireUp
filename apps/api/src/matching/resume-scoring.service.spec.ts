@@ -61,6 +61,26 @@ describe('ResumeScoringService', () => {
     expect(strong.feedback.interviewStages).toHaveLength(4);
   });
 
+  it('boosts score when job title overlaps resume content', () => {
+    const resume = emptyResumeContent();
+    resume.skills = ['TypeScript', 'NestJS'];
+    resume.basics.headline = 'Senior Backend Engineer';
+
+    const withTitle = service.scoreHeuristic(
+      resume,
+      'Looking for backend APIs and databases.',
+      true,
+      'Senior Backend Engineer',
+    );
+    const withoutTitle = service.scoreHeuristic(
+      resume,
+      'Looking for backend APIs and databases.',
+      true,
+    );
+
+    expect(withTitle.scores.skills).toBeGreaterThanOrEqual(withoutTitle.scores.skills);
+  });
+
   it('produces stable content hashes', () => {
     const resume = emptyResumeContent();
     resume.skills = ['Go'];

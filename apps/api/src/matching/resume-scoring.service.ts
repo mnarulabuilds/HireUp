@@ -2,9 +2,14 @@ import { createHash } from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   MatchFeedback,
+  MatchFeedbackSchema,
   MatchScores,
+  MatchScoresSchema,
   ResumeContent,
   ResumeContentSchema,
+  keywordOverlapRatio,
+  missingJobKeywords,
+  tokenizeJobText,
 } from '@hireup/shared';
 import OpenAI from 'openai';
 
@@ -18,11 +23,19 @@ export type ScoreResult = {
 export class ResumeScoringService {
   private readonly logger = new Logger(ResumeScoringService.name);
 
-  contentHash(resume: ResumeContent, jobDescription: string) {
+  contentHash(
+    resume: ResumeContent,
+    jobDescription: string,
+    options?: { richFeedback?: boolean; jobTitle?: string },
+  ) {
     return createHash('sha256')
       .update(JSON.stringify(resume))
       .update('\n')
       .update(jobDescription)
+      .update('\n')
+      .update(options?.jobTitle ?? '')
+      .update('\n')
+      .update(options?.richFeedback ? 'rich' : 'basic')
       .digest('hex');
   }
 
@@ -30,18 +43,24 @@ export class ResumeScoringService {
     resumeInput: unknown,
     jobDescription: string,
     richFeedback: boolean,
+    jobTitle?: string,
   ): Promise<ScoreResult> {
     const resume = ResumeContentSchema.parse(resumeInput);
     if (process.env.OPENAI_API_KEY) {
       try {
-        const ai = await this.scoreWithOpenAI(resume, jobDescription, richFeedback);
+        const ai = await this.scoreWithOpenAI(
+          resume,
+          jobDescription,
+          richFeedback,
+          jobTitle,
+        );
         return { ...ai, provider: 'openai' };
       } catch (err) {
         this.logger.warn(`OpenAI scoring failed, using heuristic: ${String(err)}`);
       }
     }
     return {
-      ...this.scoreHeuristic(resume, jobDescription, richFeedback),
+      ...this.scoreHeuristic(resume, jobDescription, richFeedback, jobTitle),
       provider: 'heuristic',
     };
   }
@@ -50,28 +69,31 @@ export class ResumeScoringService {
     resume: ResumeContent,
     jobDescription: string,
     richFeedback: boolean,
+    jobTitle?: string,
   ): Omit<ScoreResult, 'provider'> {
     const jd = jobDescription.toLowerCase();
     const resumeSkills = resume.skills.map((s) => s.toLowerCase());
     const resumeText = JSON.stringify(resume).toLowerCase();
-
-    const jdTokens = Array.from(
-      new Set(
-        jd
-          .split(/[^a-z0-9+#.]/i)
-          .map((t) => t.trim())
-          .filter((t) => t.length > 2),
-      ),
-    );
+    const jdTokens = tokenizeJobText(`${jobDescription} ${jobTitle ?? ''}`);
 
     const skillHits = resumeSkills.filter((s) => jd.includes(s)).length;
+    const listedSkillCoverage = keywordOverlapRatio(
+      jdTokens.filter((t) => t.length > 3),
+      resumeSkills.join(' '),
+    );
     const tokenHits = jdTokens.filter((t) => resumeText.includes(t)).length;
+    const titleBoost =
+      jobTitle && jobTitle.trim().length > 2
+        ? Math.round(keywordOverlapRatio(tokenizeJobText(jobTitle), resumeText) * 12)
+        : 0;
     const skillScore = Math.min(
       100,
       Math.round(
-        (skillHits / Math.max(resumeSkills.length || 1, 1)) * 70 +
-          (tokenHits / Math.max(jdTokens.length, 1)) * 30 +
-          (resumeSkills.length ? 10 : 0),
+        (skillHits / Math.max(resumeSkills.length || 1, 1)) * 55 +
+          listedSkillCoverage * 25 +
+          (tokenHits / Math.max(jdTokens.length, 1)) * 20 +
+          (resumeSkills.length ? 8 : 0) +
+          titleBoost,
       ),
     );
 
@@ -105,10 +127,12 @@ export class ResumeScoringService {
       Math.round(overall * 0.85 + (bulletCount > 4 ? 8 : 0)),
     );
 
-    const missingSkills = jdTokens
-      .filter((t) => !resumeText.includes(t))
-      .filter((t) => t.length > 3)
-      .slice(0, richFeedback ? 8 : 3);
+    const missingSkills = missingJobKeywords(
+      jobDescription,
+      resumeText,
+      richFeedback ? 8 : 3,
+      jobTitle ?? '',
+    );
 
     const feedback: MatchFeedback = {
       strengths: [
@@ -169,6 +193,7 @@ export class ResumeScoringService {
     resume: ResumeContent,
     jobDescription: string,
     richFeedback: boolean,
+    jobTitle?: string,
   ): Promise<Omit<ScoreResult, 'provider'>> {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const prompt = `You are an expert resume coach and ATS analyst.
@@ -177,6 +202,7 @@ Return ONLY valid JSON with shape:
 "feedback":{"strengths":string[],"gaps":string[],"actions":string[],
 "interviewStages":[{"stage":string,"likelihood":0-100,"tip":string}]}}
 Rich feedback: ${richFeedback}
+Target job title: ${jobTitle ?? 'Not provided'}
 Job description:
 ${jobDescription}
 Resume JSON:
@@ -193,10 +219,10 @@ ${JSON.stringify(resume)}`;
     });
 
     const raw = completion.choices[0]?.message?.content ?? '{}';
-    const parsed = JSON.parse(raw) as ScoreResult;
+    const parsed = JSON.parse(raw) as { scores?: MatchScores; feedback?: MatchFeedback };
     return {
-      scores: parsed.scores,
-      feedback: parsed.feedback,
+      scores: MatchScoresSchema.parse(parsed.scores),
+      feedback: MatchFeedbackSchema.parse(parsed.feedback),
     };
   }
 }

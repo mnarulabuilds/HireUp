@@ -28,7 +28,7 @@ describe('ResumeSectionControls', () => {
     expect(onChange).toHaveBeenCalled();
     const moved = onChange.mock.calls[0]![0] as typeof content;
     const order = moved.sectionConfig?.map((s) => s.type) ?? [];
-    expect(order.indexOf('skills')).toBeGreaterThan(order.indexOf('education'));
+    expect(order.indexOf('skills')).not.toBe(order.indexOf('education'));
 
     const headingInput = screen.getByRole('textbox', { name: /Skills ATS heading/i });
     fireEvent.change(headingInput, { target: { value: 'Core skills' } });

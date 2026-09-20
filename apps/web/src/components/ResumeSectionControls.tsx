@@ -5,6 +5,7 @@ import {
   ATS_SECTION_HEADINGS,
   DEFAULT_SECTION_ORDER,
   normalizeSectionConfig,
+  reorderSectionConfig,
 } from '@hireup/shared';
 
 const LABELS: Record<SectionType, string> = {
@@ -29,16 +30,7 @@ export function ResumeSectionControls({ content, onChange }: Props) {
   }
 
   function move(type: SectionType, direction: -1 | 1) {
-    const order = config.map((c) => c.type);
-    const idx = order.indexOf(type);
-    const swap = idx + direction;
-    if (swap < 0 || swap >= order.length) return;
-    const copy = [...config];
-    const a = copy[idx]!;
-    const b = copy[swap]!;
-    copy[idx] = b;
-    copy[swap] = a;
-    updateConfig(copy);
+    updateConfig(reorderSectionConfig(config, type, direction));
   }
 
   return (
@@ -106,9 +98,24 @@ export function ResumeSectionControls({ content, onChange }: Props) {
           </li>
         ))}
       </ul>
-      <p className="muted" style={{ fontSize: '0.85rem', margin: 0 }}>
-        Recommended order: {DEFAULT_SECTION_ORDER.slice(0, 4).join(' → ')}.
-      </p>
+      <div>
+        <p className="muted" style={{ fontSize: '0.85rem', margin: '0 0 0.35rem' }}>
+          Export order preview
+        </p>
+        <div className="section-order-preview" aria-label="Current export section order">
+          {config.map((item) => (
+            <span
+              key={item.type}
+              className={`section-order-chip${item.enabled ? '' : ' is-disabled'}`}
+            >
+              {LABELS[item.type]}
+            </span>
+          ))}
+        </div>
+        <p className="muted" style={{ fontSize: '0.85rem', margin: '0.5rem 0 0' }}>
+          Recommended ATS order: {DEFAULT_SECTION_ORDER.slice(0, 4).join(' → ')}.
+        </p>
+      </div>
     </section>
   );
 }

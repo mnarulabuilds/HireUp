@@ -282,6 +282,66 @@ h3,
   color: #9b1c1c;
 }
 
+.badge-muted {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  background: rgba(31, 107, 69, 0.1);
+  color: var(--leaf-deep);
+}
+
+.match-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.match-history-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+  padding: 0.65rem 0.8rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.match-history-item.is-active {
+  border-color: rgba(31, 107, 69, 0.45);
+  background: rgba(31, 107, 69, 0.08);
+  color: var(--ink);
+}
+
+.interview-stage-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.section-order-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+}
+
+.section-order-chip {
+  font-size: 0.78rem;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  background: rgba(31, 107, 69, 0.1);
+  color: var(--leaf-deep);
+}
+
+.section-order-chip.is-disabled {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
 .score-row {
   display: grid;
   grid-template-columns: 120px 1fr 48px;

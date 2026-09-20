@@ -96,9 +96,15 @@ export {
   getResumeSuggestions,
   normalizeResumeContent,
   normalizeSectionConfig,
+  reorderSectionConfig,
   renderResumePlainText,
   sectionHeading,
 } from './resume-ats';
+export {
+  keywordOverlapRatio,
+  missingJobKeywords,
+  tokenizeJobText,
+} from './job-match';
 export type {
   ResumeSuggestion,
   SuggestionSeverity,
